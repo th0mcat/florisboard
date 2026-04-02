@@ -32,6 +32,7 @@ import dev.patrickgold.florisboard.ime.input.HapticVibrationMode
 import dev.patrickgold.florisboard.ime.input.InputFeedbackActivationMode
 import dev.patrickgold.florisboard.ime.keyboard.IncognitoMode
 import dev.patrickgold.florisboard.ime.keyboard.SpaceBarMode
+import dev.patrickgold.florisboard.ime.keyboard.SplitKeyboardMode
 import dev.patrickgold.florisboard.ime.landscapeinput.LandscapeInputUiMode
 import dev.patrickgold.florisboard.ime.media.emoji.EmojiHairStyle
 import dev.patrickgold.florisboard.ime.media.emoji.EmojiHistory
@@ -524,6 +525,10 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
         val landscapeInputUiMode = enum(
             key = "keyboard__landscape_input_ui_mode",
             default = LandscapeInputUiMode.DYNAMICALLY_SHOW,
+        )
+        val splitKeyboardMode = enum(
+            key = "keyboard__split_keyboard_mode",
+            default = SplitKeyboardMode.OFF,
         )
         val keySpacingVertical = int(
             key = "keyboard__key_spacing_vertical",
