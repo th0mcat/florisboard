@@ -116,6 +116,15 @@ fun KeyboardScreen() = FlorisScreen {
                 entries = enumDisplayEntriesOf(SplitKeyboardMode::class),
             )
             DialogSliderPreference(
+                prefs.keyboard.splitKeyboardGap,
+                title = stringRes(R.string.pref__keyboard__split_keyboard_gap__label),
+                valueLabel = { stringRes(R.string.unit__display_pixel__symbol, "v" to it) },
+                min = 192,
+                max = 832,
+                stepIncrement = 64,
+                visibleIf = { prefs.keyboard.splitKeyboardMode isNotEqualTo SplitKeyboardMode.OFF },
+            )
+            DialogSliderPreference(
                 primaryPref = prefs.keyboard.keySpacingVertical,
                 secondaryPref = prefs.keyboard.keySpacingHorizontal,
                 title = stringRes(R.string.pref__keyboard__key_spacing__label),

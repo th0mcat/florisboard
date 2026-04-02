@@ -530,6 +530,10 @@ abstract class FlorisPreferenceModel : PreferenceModel() {
             key = "keyboard__split_keyboard_mode",
             default = SplitKeyboardMode.OFF,
         )
+        val splitKeyboardGap = int(
+            key = "keyboard__split_keyboard_gap",
+            default = 384,
+        )
         val keySpacingVertical = int(
             key = "keyboard__key_spacing_vertical",
             default = 100,

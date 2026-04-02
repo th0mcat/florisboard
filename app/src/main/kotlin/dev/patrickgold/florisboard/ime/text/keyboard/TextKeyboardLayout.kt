@@ -105,9 +105,6 @@ import kotlin.math.sqrt
 /** Minimum screen width in dp for AUTO split mode to activate (tablet/foldable threshold). */
 private const val SPLIT_KEYBOARD_MIN_WIDTH_DP = 600
 
-/** Width of the gap between the two keyboard halves in split mode, in dp. */
-private val SPLIT_KEYBOARD_GAP_DP = 64.dp
-
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -129,6 +126,7 @@ fun TextKeyboardLayout(
     val glideTrailColor = glideTrailStyle.foreground(default = Color.Green)
 
     val splitKeyboardMode by prefs.keyboard.splitKeyboardMode.collectAsState()
+    val splitKeyboardGapDp by prefs.keyboard.splitKeyboardGap.collectAsState()
     // The split layout is active only when in landscape orientation and the mode is enabled.
     // AUTO additionally requires the screen to be at least 600 dp wide (tablet/foldable threshold).
     val splitActive = configuration.isOrientationLandscape() && when (splitKeyboardMode) {
@@ -259,7 +257,7 @@ fun TextKeyboardLayout(
                 if (splitActive) {
                     keyboard.layoutSplit(
                         keyboardWidth, keyboardHeight, desiredKey, true,
-                        SPLIT_KEYBOARD_GAP_DP.toPx(),
+                        splitKeyboardGapDp.dp.toPx(),
                     )
                 } else {
                     keyboard.layout(keyboardWidth, keyboardHeight, desiredKey, true)
