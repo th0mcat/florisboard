@@ -20,6 +20,8 @@ import dev.patrickgold.florisboard.ime.keyboard.Key
 import dev.patrickgold.florisboard.ime.keyboard.Keyboard
 import dev.patrickgold.florisboard.ime.keyboard.KeyboardMode
 import dev.patrickgold.florisboard.ime.popup.PopupMapping
+import dev.patrickgold.florisboard.ime.text.key.KeyCode
+import dev.patrickgold.florisboard.lib.FlorisRect
 import kotlin.math.abs
 
 class TextKeyboard(
@@ -34,6 +36,12 @@ class TextKeyboard(
     val keyCount: Int
         get() = arrangement.sumOf { it.size }
 
+    /**
+     * Extra keys created during [layoutSplit] for split-boundary characters (G, V) that are
+     * shown on both halves of the split keyboard. Cleared on each layout call.
+     */
+    private val splitBoundaryExtraKeys: MutableList<TextKey> = mutableListOf()
+
     override fun getKeyForPos(pointerX: Float, pointerY: Float): TextKey? {
         for (key in keys()) {
             if (key.touchBounds.contains(pointerX, pointerY)) {
@@ -43,12 +51,20 @@ class TextKeyboard(
         return null
     }
 
+    override fun keys(): Iterator<TextKey> {
+        return sequence {
+            yieldAll(TextKeyboardIterator(arrangement))
+            yieldAll(splitBoundaryExtraKeys)
+        }.iterator()
+    }
+
     override fun layout(
         keyboardWidth: Float,
         keyboardHeight: Float,
         desiredKey: Key,
         extendTouchBoundariesDownwards: Boolean,
     ) {
+        splitBoundaryExtraKeys.clear()
         if (arrangement.isEmpty()) return
 
         val desiredTouchBounds = desiredKey.touchBounds
@@ -151,10 +167,6 @@ class TextKeyboard(
         }
     }
 
-    override fun keys(): Iterator<TextKey> {
-        return TextKeyboardIterator(arrangement)
-    }
-
     fun rows(): Iterator<Array<TextKey>> {
         return arrangement.iterator()
     }
@@ -175,6 +187,7 @@ class TextKeyboard(
         extendTouchBoundariesDownwards: Boolean,
         splitGapWidth: Float,
     ) {
+        splitBoundaryExtraKeys.clear()
         if (arrangement.isEmpty()) return
         val desiredTouchBounds = desiredKey.touchBounds
         val desiredVisibleBounds = desiredKey.visibleBounds
@@ -220,6 +233,12 @@ class TextKeyboard(
 
             splitIndex = splitIndex.coerceIn(1, row.size - 1)
 
+            // Check if the boundary key (last of left half) is G or V, to be shown on both halves.
+            val boundaryKey = row[splitIndex - 1]
+            val boundaryUpper = boundaryKey.computedData.code.toChar().uppercaseChar()
+            val isBoundaryGorV = boundaryUpper == 'G' || boundaryUpper == 'V'
+
+            // Layout the left half (boundary key is the last key here).
             layoutRowSegment(
                 row = row, from = 0, to = splitIndex,
                 posY = posY, segmentWidth = halfWidth,
@@ -229,15 +248,56 @@ class TextKeyboard(
                 desiredVisibleBounds = desiredVisibleBounds,
                 extendTouchDownwards = isLastRow,
             )
-            layoutRowSegment(
-                row = row, from = splitIndex, to = row.size,
-                posY = posY, segmentWidth = halfWidth,
-                startX = rightOffset, endX = keyboardWidth,
-                rowMarginH = rowMarginH,
-                desiredTouchBounds = desiredTouchBounds,
-                desiredVisibleBounds = desiredVisibleBounds,
-                extendTouchDownwards = isLastRow,
-            )
+
+            if (isBoundaryGorV) {
+                // Save the left-half bounds for the boundary key so we can restore them after
+                // the right-half layout temporarily overwrites them.
+                val savedTouchBounds = FlorisRect.from(boundaryKey.touchBounds)
+                val savedVisibleBounds = FlorisRect.from(boundaryKey.visibleBounds)
+
+                // Layout the right half starting from the boundary key (splitIndex-1) so that
+                // the boundary key becomes the first key on the right half too.
+                layoutRowSegment(
+                    row = row, from = splitIndex - 1, to = row.size,
+                    posY = posY, segmentWidth = halfWidth,
+                    startX = rightOffset, endX = keyboardWidth,
+                    rowMarginH = rowMarginH,
+                    desiredTouchBounds = desiredTouchBounds,
+                    desiredVisibleBounds = desiredVisibleBounds,
+                    extendTouchDownwards = isLastRow,
+                )
+
+                // Create a clone of the boundary key with the right-half first-key bounds.
+                val clone = boundaryKey.cloneForSplit()
+                clone.touchBounds.applyFrom(boundaryKey.touchBounds)
+                clone.visibleBounds.applyFrom(boundaryKey.visibleBounds)
+                splitBoundaryExtraKeys.add(clone)
+
+                // Restore the boundary key to its left-half bounds.
+                boundaryKey.touchBounds.applyFrom(savedTouchBounds)
+                boundaryKey.visibleBounds.applyFrom(savedVisibleBounds)
+            } else {
+                // Standard right-half layout.
+                layoutRowSegment(
+                    row = row, from = splitIndex, to = row.size,
+                    posY = posY, segmentWidth = halfWidth,
+                    startX = rightOffset, endX = keyboardWidth,
+                    rowMarginH = rowMarginH,
+                    desiredTouchBounds = desiredTouchBounds,
+                    desiredVisibleBounds = desiredVisibleBounds,
+                    extendTouchDownwards = isLastRow,
+                )
+            }
+
+            // SPACEBAR BRIDGE: extend the spacebar's bounds leftward to halfWidth so that
+            // it visually spans the center gap and the gap area registers as a space press.
+            for (key in row) {
+                if (key.computedData.code == KeyCode.SPACE || key.computedData.code == KeyCode.CJK_SPACE) {
+                    key.touchBounds.left = halfWidth
+                    key.visibleBounds.left = halfWidth
+                    break
+                }
+            }
         }
     }
 
