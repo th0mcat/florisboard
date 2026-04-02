@@ -259,6 +259,32 @@ class TextKey(override val data: AbstractKeyData) : Key(data) {
         }
     }
 
+    /**
+     * Creates a shallow clone of this key for use as a split-boundary mirror on the opposite half.
+     * Copies all computed display state but leaves the touch/visible bounds empty so the caller can
+     * position the clone independently.
+     */
+    fun cloneForSplit(): TextKey {
+        return TextKey(data).also { clone ->
+            clone.computedData = this.computedData
+            clone.computedSymbolHint = this.computedSymbolHint
+            clone.computedNumberHint = this.computedNumberHint
+            clone.computedHintData = this.computedHintData
+            clone.computedPopups.main = this.computedPopups.main
+            this.computedPopups.relevant.forEach { clone.computedPopups.relevant.add(it) }
+            clone.computedPopups.symbolHint = this.computedPopups.symbolHint
+            clone.computedPopups.numberHint = this.computedPopups.numberHint
+            clone.isEnabled = this.isEnabled
+            clone.isVisible = this.isVisible
+            clone.flayShrink = this.flayShrink
+            clone.flayGrow = this.flayGrow
+            clone.flayWidthFactor = this.flayWidthFactor
+            clone.label = this.label
+            clone.hintedLabel = this.hintedLabel
+            clone.foregroundImageVector = this.foregroundImageVector
+        }
+    }
+
     override fun toString(): String {
         return computedData.toString()
     }
