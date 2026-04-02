@@ -56,6 +56,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import dev.patrickgold.florisboard.FlorisImeService
 import dev.patrickgold.florisboard.app.FlorisPreferenceStore
@@ -68,6 +69,7 @@ import dev.patrickgold.florisboard.ime.keyboard.ComputingEvaluator
 import dev.patrickgold.florisboard.ime.keyboard.FlorisImeSizing
 import dev.patrickgold.florisboard.ime.keyboard.KeyboardMode
 import dev.patrickgold.florisboard.ime.keyboard.SpaceBarMode
+import dev.patrickgold.florisboard.ime.keyboard.SplitKeyboardMode
 import dev.patrickgold.florisboard.ime.popup.ExceptionsForKeyCodes
 import dev.patrickgold.florisboard.ime.popup.PopupUiController
 import dev.patrickgold.florisboard.ime.popup.rememberPopupUiController
@@ -100,6 +102,12 @@ import org.florisboard.lib.snygg.ui.rememberSnyggThemeQuery
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+/** Minimum screen width in dp for AUTO split mode to activate (tablet/foldable threshold). */
+private const val SPLIT_KEYBOARD_MIN_WIDTH_DP = 600
+
+/** Width of the gap between the two keyboard halves in split mode, in dp. */
+private val SPLIT_KEYBOARD_GAP_DP = 64.dp
+
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -119,6 +127,15 @@ fun TextKeyboardLayout(
     val glideShowTrail by prefs.glide.showTrail.collectAsState()
     val glideTrailStyle = rememberSnyggThemeQuery(FlorisImeUi.GlideTrail.elementName)
     val glideTrailColor = glideTrailStyle.foreground(default = Color.Green)
+
+    val splitKeyboardMode by prefs.keyboard.splitKeyboardMode.collectAsState()
+    // The split layout is active only when in landscape orientation and the mode is enabled.
+    // AUTO additionally requires the screen to be at least 600 dp wide (tablet/foldable threshold).
+    val splitActive = configuration.isOrientationLandscape() && when (splitKeyboardMode) {
+        SplitKeyboardMode.OFF -> false
+        SplitKeyboardMode.AUTO -> configuration.screenWidthDp >= SPLIT_KEYBOARD_MIN_WIDTH_DP
+        SplitKeyboardMode.ALWAYS_ON -> true
+    }
 
     val controller = remember { TextKeyboardLayoutController(context) }.also {
         it.keyboard = keyboard
@@ -222,7 +239,7 @@ fun TextKeyboardLayout(
 
         val desiredKey = remember(
             keyboard, keyboardWidth, keyboardHeight, keyMarginH, keyMarginV,
-            keyboardRowBaseHeight, evaluator
+            keyboardRowBaseHeight, evaluator, splitActive
         ) {
             TextKey(data = TextKeyData.UNSPECIFIED).also { desiredKey ->
                 desiredKey.touchBounds.apply {
@@ -239,7 +256,14 @@ fun TextKeyboardLayout(
                     }
                 }
                 desiredKey.visibleBounds.applyFrom(desiredKey.touchBounds).deflateBy(keyMarginH, keyMarginV)
-                keyboard.layout(keyboardWidth, keyboardHeight, desiredKey, true)
+                if (splitActive) {
+                    keyboard.layoutSplit(
+                        keyboardWidth, keyboardHeight, desiredKey, true,
+                        SPLIT_KEYBOARD_GAP_DP.toPx(),
+                    )
+                } else {
+                    keyboard.layout(keyboardWidth, keyboardHeight, desiredKey, true)
+                }
             }
         }
 

@@ -23,6 +23,7 @@ import dev.patrickgold.florisboard.app.Routes
 import dev.patrickgold.florisboard.app.enumDisplayEntriesOf
 import dev.patrickgold.florisboard.ime.input.CapitalizationBehavior
 import dev.patrickgold.florisboard.ime.keyboard.SpaceBarMode
+import dev.patrickgold.florisboard.ime.keyboard.SplitKeyboardMode
 import dev.patrickgold.florisboard.ime.landscapeinput.LandscapeInputUiMode
 import dev.patrickgold.florisboard.ime.smartbar.IncognitoDisplayMode
 import dev.patrickgold.florisboard.ime.text.key.KeyHintMode
@@ -108,6 +109,12 @@ fun KeyboardScreen() = FlorisScreen {
                 prefs.keyboard.landscapeInputUiMode,
                 title = stringRes(R.string.pref__keyboard__landscape_input_ui_mode__label),
                 entries = enumDisplayEntriesOf(LandscapeInputUiMode::class),
+            )
+            ListPreference(
+                prefs.keyboard.splitKeyboardMode,
+                title = stringRes(R.string.pref__keyboard__split_keyboard_mode__label),
+                summary = stringRes(R.string.pref__keyboard__split_keyboard_mode__summary),
+                entries = enumDisplayEntriesOf(SplitKeyboardMode::class),
             )
             DialogSliderPreference(
                 primaryPref = prefs.keyboard.keySpacingVertical,
