@@ -113,7 +113,6 @@ fun KeyboardScreen() = FlorisScreen {
             ListPreference(
                 prefs.keyboard.splitKeyboardMode,
                 title = stringRes(R.string.pref__keyboard__split_keyboard_mode__label),
-                summary = stringRes(R.string.pref__keyboard__split_keyboard_mode__summary),
                 entries = enumDisplayEntriesOf(SplitKeyboardMode::class),
             )
             DialogSliderPreference(
